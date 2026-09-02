@@ -1,0 +1,19 @@
+site_id,site_name,territory_id,site_type,state
+1,Coastal Northeast Site 1,1,Hospital,NY
+2,Coastal Northeast Site 2,1,ASC,MA
+3,Coastal Northeast Site 3,1,Hospital,NY
+4,Coastal Northeast Site 4,1,Hospital,NY
+5,Coastal Northeast Site 5,1,Hospital,CT
+6,Great Lakes Site 1,2,ASC,IL
+7,Great Lakes Site 2,2,ASC,IL
+8,Great Lakes Site 3,2,ASC,IL
+9,Great Lakes Site 4,2,ASC,OH
+10,Piedmont Site 1,3,Clinic,SC
+11,Piedmont Site 2,3,ASC,SC
+12,Piedmont Site 3,3,Hospital,GA
+13,Piedmont Site 4,3,Clinic,SC
+14,Gulf Coast Site 1,4,Hospital,FL
+15,Gulf Coast Site 2,4,ASC,LA
+16,Gulf Coast Site 3,4,Hospital,TX
+17,Gulf Coast Site 4,4,Hospital,LA
+18,Gulf Coast Site 5,4,Clinic,TX

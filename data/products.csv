@@ -1,0 +1,26 @@
+product_id,product_name,category,unit_cost
+1,Cannulated Screw Set 6.5mm,Implant,1850.0
+2,Total Knee System,Implant,3400.0
+3,Hip Stem - Cementless,Implant,2950.0
+4,Locking Plate 3.5mm,Implant,975.0
+5,Intramedullary Nail,Implant,2100.0
+6,Suture Anchor Kit,Implant,640.0
+7,Spinal Fusion Cage,Implant,3800.0
+8,External Fixator Set,Implant,1420.0
+9,Power Drill System,Instrument,1200.0
+10,Reamer Set,Instrument,890.0
+11,Retractor Tray,Instrument,410.0
+12,C-Arm Drape Kit,Instrument,320.0
+13,Torque Wrench Set,Instrument,275.0
+14,Bone Saw Blade Set,Instrument,240.0
+15,Sterile Gown - Surgical,Disposable,8.5
+16,Surgical Drape Pack,Disposable,22.0
+17,Bone Cement Kit,Disposable,145.0
+18,Irrigation Solution 3L,Disposable,14.0
+19,Suture Pack - Assorted,Disposable,38.0
+20,Skin Marker Kit,Disposable,6.0
+21,Sterilization Wrap,Disposable,11.0
+22,N95 Respirator,PPE,1.8
+23,Surgical Face Shield,PPE,3.2
+24,Sterile Surgical Gloves (pr),PPE,0.9
+25,Bouffant Cap,PPE,0.35
