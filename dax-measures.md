@@ -74,6 +74,29 @@ Format as percentage. Slice by `territories[territory_name]` or `sites[site_name
 
 ### PAR Compliance %
 ```
+PAR Compliance % =
+AVERAGEX(
+    inventory_snapshots,
+    DIVIDE(inventory_snapshots[on_hand_qty], inventory_snapshots[PAR Qty])
+)
+```
+This averages each snapshot's on-hand quantity **as a percentage of its own
+PAR target**, then averages that across every site/product in the slice —
+not a share of snapshots that happen to clear PAR (see the note below on
+why that matters). Format as percentage. Slice by `territories[territory_name]`
+or `sites[site_name]`.
+
+This is the measure that shows Gulf Coast dropping from ~101% to 50% when
+you plot it by month — put it on a line chart with `Calendar[MonthStart]`
+on the x-axis and `territories[territory_name]` as legend. Confirmed against
+`validate_data.py`'s Finding 2 output (`mean(on_hand_qty / par_qty)` by
+territory/month, first vs. last) — that script is the ground truth this
+project's 5 findings and case study are built on, so this formula is written
+to match it exactly, not the other way around.
+
+**Why not a straight compliance *rate*?** An earlier version of this measure
+counted the share of snapshots sitting at-or-above PAR:
+```
 Sites At Or Above PAR =
 CALCULATE(
     COUNTROWS(inventory_snapshots),
@@ -82,11 +105,16 @@ CALCULATE(
 
 Total Site-Product Snapshots = COUNTROWS(inventory_snapshots)
 
-PAR Compliance % = DIVIDE([Sites At Or Above PAR], [Total Site-Product Snapshots])
+Sites At Or Above PAR % = DIVIDE([Sites At Or Above PAR], [Total Site-Product Snapshots])
 ```
-This is the measure that shows Gulf Coast dropping from ~101% to 50% when
-you plot it by month — put it on a line chart with `Calendar[MonthStart]`
-on the x-axis and `territories[territory_name]` as legend.
+That's a legitimate, stricter metric — it tells you what fraction of
+site/product combinations are fully stocked, rather than how full the
+average one is — but on this dataset it does **not** reproduce "101% → 50%"
+(Gulf Coast actually runs from ~71% down to ~2% on that basis, since it
+counts every under-target snapshot the same regardless of how close it is).
+Keep both if you want two distinct KPI cards — just don't use them
+interchangeably and don't relabel one as the other. The case study, README,
+and `dashboard.html` all use the average-ratio version above.
 
 ### Demand Variance (coefficient of variation)
 ```
