@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAP Field Inventory KPI Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Epilogue:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080808;
+    --bg-2: #111111;
+    --bg-3: #1a1a1a;
+    --text: #f0ede8;
+    --text-muted: #888880;
+    --accent: #e8ff47;
+    --accent-dim: #b8cc2a;
+    --border: rgba(240,237,232,0.08);
+    --border-hover: rgba(240,237,232,0.2);
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Epilogue', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+
+    /* chart roles */
+    --series-highlight: var(--accent);
+    --series-muted: rgba(240,237,232,0.28);
+    --series-muted-strong: rgba(240,237,232,0.5);
+    --grid-line: rgba(240,237,232,0.08);
+    --status-good: #6ee06e;
+    --status-critical: #ff6b5e;
+    --tooltip-bg: #1c1c19;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { color-scheme: dark; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; }
+
+  /* ---------- header ---------- */
+  .header {
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border);
+    padding: 1.1rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .header-left { display: flex; align-items: center; gap: 0.9rem; }
+
+  .header-badge {
+    background: var(--accent);
+    color: #14150a;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.6rem;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .header-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    letter-spacing: 0.01em;
+  }
+
+  .header-sub {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .header-right {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+  }
+
+  .header-right a { color: var(--accent); text-decoration: none; }
+  .header-right a:hover { text-decoration: underline; }
+
+  /* ---------- layout ---------- */
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 2rem 2rem 5rem; }
+
+  .section { margin-top: 3rem; }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .section-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    letter-spacing: 0.01em;
+    margin-top: 0.15rem;
+  }
+
+  .section-note {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    max-width: 46ch;
+    text-align: right;
+    line-height: 1.5;
+  }
+
+  .card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.4rem;
+  }
+
+  /* ---------- KPI row ---------- */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .kpi-tile { background: var(--bg-2); padding: 1.3rem 1.4rem; }
+
+  .kpi-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 0.6rem;
+  }
+
+  .kpi-value {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 1.9rem;
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+
+  .kpi-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    margin-top: 0.55rem;
+  }
+
+  .kpi-delta.good { color: var(--status-good); }
+  .kpi-delta.bad { color: var(--status-critical); }
+
+  .kpi-note {
+    margin-top: 0.5rem;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+
+  .kpi-note strong { color: var(--text); font-weight: 600; }
+
+  @media (max-width: 860px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ---------- legend ---------- */
+  .legend { display: flex; flex-wrap: wrap; gap: 1.1rem; margin-bottom: 1rem; }
+  .legend-item { display: flex; align-items: center; gap: 0.45rem; font-size: 12px; color: var(--text-muted); }
+  .legend-swatch { width: 14px; height: 2px; border-radius: 1px; flex-shrink: 0; }
+
+  /* ---------- svg chart chrome ---------- */
+  .chart-svg { width: 100%; height: auto; overflow: visible; font-family: var(--font-mono); }
+  .chart-svg text { fill: var(--text-muted); font-size: 10.5px; }
+  .chart-svg .axis-line { stroke: var(--grid-line); stroke-width: 1; }
+  .chart-svg .end-label { fill: var(--text); font-size: 11px; font-weight: 500; font-family: var(--font-body); }
+
+  .crosshair-line { stroke: var(--border-hover); stroke-width: 1; pointer-events: none; opacity: 0; }
+  .hover-target { fill: transparent; }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--tooltip-bg);
+    border: 1px solid var(--border-hover);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    font-size: 11.5px;
+    min-width: 150px;
+    opacity: 0;
+    transform: translate(-50%, -110%);
+    transition: opacity 0.08s ease;
+    z-index: 50;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .tooltip.show { opacity: 1; }
+  .tooltip-title { font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 0.4rem; font-size: 10.5px; }
+  .tooltip-row { display: flex; align-items: center; gap: 0.4rem; justify-content: space-between; padding: 0.12rem 0; }
+  .tooltip-key { display: flex; align-items: center; gap: 0.4rem; color: var(--text-muted); }
+  .tooltip-swatch { width: 9px; height: 2px; border-radius: 1px; flex-shrink: 0; }
+  .tooltip-val { font-family: var(--font-mono); font-weight: 500; color: var(--text); }
+
+  .chart-wrap { position: relative; }
+
+  .bar-row { display: flex; align-items: center; gap: 0.9rem; padding: 0.55rem 0; }
+  .bar-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+  .bar-label { width: 150px; flex-shrink: 0; font-size: 12.5px; }
+  .bar-track { flex: 1; height: 22px; position: relative; background: var(--bg-3); border-radius: 4px; overflow: visible; }
+  .bar-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px 4px 4px 4px; transition: filter 0.1s ease; }
+  .bar-fill.highlight { background: var(--accent); }
+  .bar-fill.muted { background: var(--series-muted-strong); }
+  .bar-fill:hover { filter: brightness(1.15); }
+  .bar-value { width: 92px; flex-shrink: 0; text-align: right; font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+  details.data-table { margin-top: 1rem; }
+  details.data-table summary {
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    list-style: none;
+  }
+  details.data-table summary::-webkit-details-marker { display: none; }
+  details.data-table summary:before { content: "▸ "; }
+  details.data-table[open] summary:before { content: "▾ "; }
+  details.data-table summary:hover { color: var(--text); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 0.9rem; }
+  thead th {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 500;
+    padding: 0 0.7rem 0.6rem;
+    border-bottom: 1px solid var(--border-hover);
+    cursor: default;
+  }
+  thead th.num, tbody td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+  tbody td { padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--border); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(240,237,232,0.03); }
+  .row-flag { color: var(--status-critical); font-weight: 600; }
+  .row-ok { color: var(--status-good); }
+  .cell-tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--bg-3);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+  }
+
+  /* ---------- filter row ---------- */
+  .filter-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; }
+  .filter-label { font-size: 12px; color: var(--text-muted); }
+  select.filter-select {
+    background: var(--bg-3);
+    border: 1px solid var(--border-hover);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    padding: 0.4rem 0.7rem;
+    border-radius: 6px;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .callout {
+    margin-top: 1rem;
+    padding: 0.85rem 1rem;
+    border-left: 2px solid var(--accent);
+    background: rgba(232,255,71,0.05);
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.55;
+    border-radius: 0 6px 6px 0;
+  }
+  .callout strong { color: var(--text); }
+
+  footer.page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 2rem 2rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <span class="header-badge">Project 03</span>
+    <div>
+      <div class="header-title">SAP Field Inventory KPI Dashboard</div>
+      <div class="header-sub">4 territories &middot; 18 sites &middot; Aug 2025&ndash;Jul 2026</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div>All data synthetic &mdash; see <a href="https://github.com/wriveraj/sap-field-inventory-kpi-dashboard" target="_blank" rel="noopener">README</a></div>
+    <div>Generated Sep 2, 2026</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <div class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-eyebrow">Finding 02</div>
+        <div class="section-title">PAR Level by Territory</div>
+      </div>
+      <div class="section-note">Average on-hand quantity as a percentage of target PAR, by month. Three territories hold steady near 100%; one does not.</div>
+    </div>
+    <div class="card">
+      <div class="legend" id="lineLegend"></div>
+      <div class="chart-wrap">
+        <svg class="chart-svg" id="lineChart" viewBox="0 0 1080 360" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="tooltip" id="lineTooltip"></div>
+      </div>
+      <div class="callout">Gulf Coast opened the window at <strong>100.8%</strong> of target and closed it at <strong>50.0%</strong> &mdash; a steady 11-month slide, not a single bad month. Every other territory held between 96% and 103% the whole time.</div>
+      <details class="data-table">
+        <summary>View as table</summary>
+        <div style="overflow-x:auto"><table id="lineTable"></table></div>
+      </details>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="grid-2">
+      <div>
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow">Finding 01</div>
+            <div class="section-title">Reorder Cost Exposure</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-note" style="text-align:left; margin-bottom:1rem;">Latest month, by territory &mdash; below-PAR gap &times; unit cost.</div>
+          <div id="reorderBars"></div>
+          <div class="callout"><strong>$136,594</strong> total exposure &mdash; <strong>75%</strong> of it ($102,085) sitting in Gulf Coast alone.</div>
+        </div>
+      </div>
+      <div>
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow">Finding 03</div>
+            <div class="section-title">Allocation Turnaround</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-note" style="text-align:left; margin-bottom:1rem;">Average days from allocation request to fulfillment, by territory.</div>
+          <div id="turnaroundBars"></div>
+          <div class="callout">Gulf Coast averages <strong>8.5 days</strong>, nearly 3&times; the ~3.0-day average everywhere else &mdash; the PAR gap is partly a <strong>speed</strong> problem, not just a demand problem.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-eyebrow">Finding 04</div>
+        <div class="section-title">Demand Variance by Product</div>
+      </div>
+      <div class="section-note">Coefficient of variation (st.dev &divide; mean) on monthly usage. Higher = less predictable &mdash; a candidate for safety-stock review rather than a standard reorder formula.</div>
+    </div>
+    <div class="card">
+      <table id="varianceTable">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Category</th>
+            <th class="num">Avg. Monthly Use</th>
+            <th class="num">St. Dev.</th>
+            <th class="num">CV</th>
+          </tr>
+        </thead>
+        <tbody id="varianceBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-eyebrow">Site-Level Drill-Down</div>
+        <div class="section-title">All 18 Sites</div>
+      </div>
+      <div class="section-note">Filter to a territory to see which specific sites are driving the numbers above.</div>
+    </div>
+    <div class="card">
+      <div class="filter-row">
+        <span class="filter-label">Territory</span>
+        <select class="filter-select" id="territoryFilter">
+          <option value="all">All territories</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="siteTable">
+          <thead>
+            <tr>
+              <th>Site</th>
+              <th>Territory</th>
+              <th class="num">PAR Level</th>
+              <th class="num">Fulfillment</th>
+              <th class="num">Cycle Accuracy</th>
+              <th class="num">Turnaround (d)</th>
+              <th class="num">Reorder Cost</th>
+            </tr>
+          </thead>
+          <tbody id="siteBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer class="page">
+  <span>SAP Field Inventory KPI Dashboard &mdash; williamriverajr.com</span>
+  <span>Built with Python (pandas) + hand-rolled SVG, no chart library</span>
+</footer>
+
+<script id="dashboard-data" type="application/json">
+{"kpi":{"fulfillmentRate":0.8738,"fulfillmentRateMoM":0.027,"parComplianceLatest":0.8586,"parComplianceStart":0.9982,"reorderCostLatest":136594.3,"turnaroundDays":4.48,"cycleCountAccuracy":0.8126,"statusMix":{"Fulfilled":0.8738,"Delayed":0.1038,"Cancelled":0.0224}},"parComplianceByMonth":{"months":["2025-08-01","2025-09-01","2025-10-01","2025-11-01","2025-12-01","2026-01-01","2026-02-01","2026-03-01","2026-04-01","2026-05-01","2026-06-01","2026-07-01"],"territories":{"Coastal Northeast":[1.0104,0.9793,0.9968,0.9618,0.9856,1.0304,0.9938,1.0054,0.9846,1.012,0.995,0.9701],"Great Lakes":[0.9633,0.9556,0.9836,1.006,1.0019,0.9752,0.9887,1.0228,0.9898,0.99,0.9689,1.0009],"Gulf Coast":[1.0075,1.0023,1.0243,1.0149,0.9642,0.9971,0.9473,0.8608,0.7479,0.691,0.5815,0.5001],"Piedmont":[1.0053,1.0036,1.0171,0.9681,1.0093,1.0296,1.0182,0.9994,1.0015,1.0054,0.9772,1.0274]}},"reorderCostByTerritory":[{"territory":"Gulf Coast","value":102085.15},{"territory":"Coastal Northeast","value":17696.7},{"territory":"Great Lakes","value":12764.35},{"territory":"Piedmont","value":4048.1}],"turnaroundByTerritory":[{"territory":"Gulf Coast","value":8.51},{"territory":"Great Lakes","value":3.01},{"territory":"Coastal Northeast","value":2.97},{"territory":"Piedmont","value":2.96}],"demandVariance":[{"product":"Cannulated Screw Set 6.5mm","category":"Implant","avg":2.9,"stdev":3.7,"cv":1.29},{"product":"Suture Anchor Kit","category":"Implant","avg":1.5,"stdev":0.6,"cv":0.39},{"product":"External Fixator Set","category":"Implant","avg":1.5,"stdev":0.6,"cv":0.37},{"product":"Hip Stem - Cementless","category":"Implant","avg":1.5,"stdev":0.6,"cv":0.37},{"product":"Total Knee System","category":"Implant","avg":1.5,"stdev":0.6,"cv":0.37},{"product":"Locking Plate 3.5mm","category":"Implant","avg":1.5,"stdev":0.5,"cv":0.36},{"product":"Spinal Fusion Cage","category":"Implant","avg":1.6,"stdev":0.5,"cv":0.35},{"product":"Skin Marker Kit","category":"Disposable","avg":7.8,"stdev":2.6,"cv":0.33},{"product":"N95 Respirator","category":"PPE","avg":39.5,"stdev":12.7,"cv":0.32},{"product":"Torque Wrench Set","category":"Instrument","avg":1.0,"stdev":0.3,"cv":0.32},{"product":"Bone Saw Blade Set","category":"Instrument","avg":1.0,"stdev":0.3,"cv":0.32},{"product":"Sterilization Wrap","category":"Disposable","avg":8.2,"stdev":2.6,"cv":0.32},{"product":"Intramedullary Nail","category":"Implant","avg":1.6,"stdev":0.5,"cv":0.31},{"product":"C-Arm Drape Kit","category":"Instrument","avg":1.0,"stdev":0.3,"cv":0.31},{"product":"Surgical Face Shield","category":"PPE","avg":41.0,"stdev":12.7,"cv":0.31},{"product":"Sterile Gown - Surgical","category":"Disposable","avg":8.4,"stdev":2.5,"cv":0.3},{"product":"Irrigation Solution 3L","category":"Disposable","avg":8.1,"stdev":2.4,"cv":0.3},{"product":"Surgical Drape Pack","category":"Disposable","avg":7.9,"stdev":2.3,"cv":0.29},{"product":"Bone Cement Kit","category":"Disposable","avg":8.1,"stdev":2.3,"cv":0.29},{"product":"Suture Pack - Assorted","category":"Disposable","avg":8.2,"stdev":2.3,"cv":0.29},{"product":"Bouffant Cap","category":"PPE","avg":41.8,"stdev":11.9,"cv":0.28},{"product":"Sterile Surgical Gloves (pr)","category":"PPE","avg":39.0,"stdev":11.0,"cv":0.28},{"product":"Power Drill System","category":"Instrument","avg":1.1,"stdev":0.3,"cv":0.25},{"product":"Retractor Tray","category":"Instrument","avg":1.0,"stdev":0.3,"cv":0.25},{"product":"Reamer Set","category":"Instrument","avg":1.0,"stdev":0.3,"cv":0.25}],"sites":[{"site":"Gulf Coast Site 3","territory":"Gulf Coast","parCompliance":0.4587,"fulfillmentRate":0.7742,"cycleAccuracy":0.7564,"turnaroundDays":8.65,"reorderCost":17329.1},{"site":"Gulf Coast Site 5","territory":"Gulf Coast","parCompliance":0.4624,"fulfillmentRate":0.7792,"cycleAccuracy":0.6916,"turnaroundDays":8.46,"reorderCost":26463.1},{"site":"Gulf Coast Site 4","territory":"Gulf Coast","parCompliance":0.4751,"fulfillmentRate":0.7822,"cycleAccuracy":0.8381,"turnaroundDays":8.59,"reorderCost":17888.25},{"site":"Gulf Coast Site 1","territory":"Gulf Coast","parCompliance":0.5408,"fulfillmentRate":0.7887,"cycleAccuracy":0.8009,"turnaroundDays":8.26,"reorderCost":18424.8},{"site":"Gulf Coast Site 2","territory":"Gulf Coast","parCompliance":0.5804,"fulfillmentRate":0.8211,"cycleAccuracy":0.7684,"turnaroundDays":8.56,"reorderCost":21979.9},{"site":"Coastal Northeast Site 1","territory":"Coastal Northeast","parCompliance":0.9189,"fulfillmentRate":0.9479,"cycleAccuracy":0.8463,"turnaroundDays":2.91,"reorderCost":7358.65},{"site":"Coastal Northeast Site 5","territory":"Coastal Northeast","parCompliance":0.9291,"fulfillmentRate":0.9651,"cycleAccuracy":0.8997,"turnaroundDays":3.06,"reorderCost":7091.0},{"site":"Coastal Northeast Site 4","territory":"Coastal Northeast","parCompliance":0.9541,"fulfillmentRate":0.7912,"cycleAccuracy":0.824,"turnaroundDays":2.97,"reorderCost":2642.0},{"site":"Great Lakes Site 2","territory":"Great Lakes","parCompliance":0.96,"fulfillmentRate":0.8889,"cycleAccuracy":0.8043,"turnaroundDays":2.92,"reorderCost":2975.0},{"site":"Great Lakes Site 3","territory":"Great Lakes","parCompliance":0.9823,"fulfillmentRate":0.9158,"cycleAccuracy":0.8714,"turnaroundDays":3.06,"reorderCost":3670.4},{"site":"Piedmont Site 1","territory":"Piedmont","parCompliance":1.0132,"fulfillmentRate":0.9314,"cycleAccuracy":0.7811,"turnaroundDays":2.94,"reorderCost":3741.3},{"site":"Piedmont Site 4","territory":"Piedmont","parCompliance":1.0234,"fulfillmentRate":0.9649,"cycleAccuracy":0.888,"turnaroundDays":3.07,"reorderCost":123.1},{"site":"Coastal Northeast Site 3","territory":"Coastal Northeast","parCompliance":1.0245,"fulfillmentRate":0.8559,"cycleAccuracy":0.6901,"turnaroundDays":2.97,"reorderCost":413.1},{"site":"Great Lakes Site 1","territory":"Great Lakes","parCompliance":1.0294,"fulfillmentRate":0.8947,"cycleAccuracy":0.7596,"turnaroundDays":2.99,"reorderCost":5296.05},{"site":"Great Lakes Site 4","territory":"Great Lakes","parCompliance":1.0324,"fulfillmentRate":0.9091,"cycleAccuracy":0.8587,"turnaroundDays":3.06,"reorderCost":822.9},{"site":"Piedmont Site 2","territory":"Piedmont","parCompliance":1.0362,"fulfillmentRate":0.8539,"cycleAccuracy":0.904,"turnaroundDays":2.91,"reorderCost":62.7},{"site":"Coastal Northeast Site 2","territory":"Coastal Northeast","parCompliance":1.0381,"fulfillmentRate":0.9574,"cycleAccuracy":0.8378,"turnaroundDays":2.91,"reorderCost":191.95},{"site":"Piedmont Site 3","territory":"Piedmont","parCompliance":1.0385,"fulfillmentRate":0.8557,"cycleAccuracy":0.7672,"turnaroundDays":2.91,"reorderCost":121.0}]}
+
+</script>
+
+<script>
+(function () {
+  "use strict";
+  const DATA = JSON.parse(document.getElementById("dashboard-data").textContent);
+
+  const fmtPct = (v, digits) => (v * 100).toFixed(digits === undefined ? 1 : digits) + "%";
+  const fmtPp = (v) => (v >= 0 ? "+" : "") + (v * 100).toFixed(1) + "pp";
+  const fmtUsd = (v) => "$" + Math.round(v).toLocaleString("en-US");
+  const fmtDays = (v) => v.toFixed(1) + "d";
+  const monthLabel = (iso) => {
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+  };
+
+  const TERRITORY_ORDER = ["Gulf Coast", "Coastal Northeast", "Great Lakes", "Piedmont"];
+  const isHighlight = (t) => t === "Gulf Coast";
+
+  // ---------------- KPI tiles ----------------
+  function renderKPI() {
+    const k = DATA.kpi;
+    const tiles = [
+      {
+        label: "Case Fulfillment Rate",
+        value: fmtPct(k.fulfillmentRate),
+        deltaGood: k.fulfillmentRateMoM >= 0,
+        delta: fmtPp(k.fulfillmentRateMoM) + " vs. prior month",
+        note: fmtPct(k.statusMix.Delayed) + " delayed &middot; " + fmtPct(k.statusMix.Cancelled) + " cancelled",
+      },
+      {
+        label: "PAR Level vs. Target (blended)",
+        value: fmtPct(k.parComplianceLatest),
+        deltaGood: false,
+        delta: fmtPp(k.parComplianceLatest - k.parComplianceStart) + " vs. 12 months ago",
+        note: "<strong>Gulf Coast alone: 100.8% → 50.0%</strong>",
+      },
+      {
+        label: "Reorder Cost Exposure",
+        value: fmtUsd(k.reorderCostLatest),
+        note: "latest month &middot; <strong>75%</strong> in Gulf Coast",
+      },
+      {
+        label: "Allocation Turnaround (blended)",
+        value: fmtDays(k.turnaroundDays),
+        note: "<strong>Gulf Coast: 8.5d</strong> vs. ~3.0d elsewhere",
+      },
+    ];
+    const grid = document.getElementById("kpiGrid");
+    grid.innerHTML = tiles.map(t => `
+      <div class="kpi-tile">
+        <div class="kpi-label">${t.label}</div>
+        <div class="kpi-value">${t.value}</div>
+        ${t.delta ? `<div class="kpi-delta ${t.deltaGood ? "good" : "bad"}">${t.deltaGood ? "▲" : "▼"} ${t.delta}</div>` : ""}
+        ${t.note ? `<div class="kpi-note">${t.note}</div>` : ""}
+      </div>
+    `).join("");
+  }
+
+  // ---------------- Line chart: PAR level by territory ----------------
+  function renderLineChart() {
+    const months = DATA.parComplianceByMonth.months;
+    const series = DATA.parComplianceByMonth.territories;
+    const W = 1080, H = 360;
+    const M = { top: 20, right: 132, bottom: 30, left: 42 };
+    const plotW = W - M.left - M.right;
+    const plotH = H - M.top - M.bottom;
+
+    let allVals = [];
+    TERRITORY_ORDER.forEach(t => allVals = allVals.concat(series[t]));
+    const yMin = Math.min(0.4, Math.floor(Math.min(...allVals) * 20) / 20);
+    const yMax = Math.max(1.05, Math.ceil(Math.max(...allVals) * 20) / 20);
+
+    const x = (i) => M.left + (i / (months.length - 1)) * plotW;
+    const y = (v) => M.top + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
+
+    const svg = document.getElementById("lineChart");
+    let parts = [];
+
+    // gridlines (horizontal, recessive) at 100%, 90%, 80%, ... within range
+    const gridSteps = [];
+    for (let g = 0.4; g <= 1.1; g += 0.1) { if (g >= yMin - 0.001 && g <= yMax + 0.001) gridSteps.push(Math.round(g * 100) / 100); }
+    gridSteps.forEach(g => {
+      const gy = y(g);
+      parts.push(`<line class="axis-line" x1="${M.left}" y1="${gy}" x2="${M.left + plotW}" y2="${gy}"/>`);
+      parts.push(`<text x="${M.left - 10}" y="${gy + 3.5}" text-anchor="end">${Math.round(g * 100)}%</text>`);
+    });
+    // 100% baseline slightly stronger
+    parts.push(`<line class="axis-line" x1="${M.left}" y1="${y(1)}" x2="${M.left + plotW}" y2="${y(1)}" stroke-opacity="0.6"/>`);
+
+    // x labels (every other month to avoid crowding)
+    months.forEach((m, i) => {
+      if (i % 2 === 0 || i === months.length - 1) {
+        parts.push(`<text x="${x(i)}" y="${H - 6}" text-anchor="middle">${monthLabel(m)}</text>`);
+      }
+    });
+
+    // draw muted series first, highlight last (on top)
+    const drawOrder = TERRITORY_ORDER.slice().sort((a, b) => (isHighlight(a) ? 1 : 0) - (isHighlight(b) ? 1 : 0));
+
+    const linePaths = {};
+    drawOrder.forEach(t => {
+      const vals = series[t];
+      const d = vals.map((v, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
+      linePaths[t] = d;
+      const stroke = isHighlight(t) ? "var(--series-highlight)" : "var(--series-muted)";
+      const width = isHighlight(t) ? 2.5 : 2;
+      parts.push(`<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${width}" stroke-linejoin="round" stroke-linecap="round"/>`);
+      // end marker
+      const lastI = vals.length - 1;
+      const ex = x(lastI), ey = y(vals[lastI]);
+      parts.push(`<circle cx="${ex}" cy="${ey}" r="4.5" fill="${isHighlight(t) ? "var(--series-highlight)" : "var(--series-muted-strong)"}" stroke="var(--bg-2)" stroke-width="2"/>`);
+    });
+
+    // direct end-labels, offset to avoid collision (muted ones grouped near their true position, sorted)
+    const labelData = TERRITORY_ORDER.map(t => ({ t, y: y(series[t][series[t].length - 1]) })).sort((a, b) => a.y - b.y);
+    const minGap = 14;
+    for (let i = 1; i < labelData.length; i++) {
+      if (labelData[i].y - labelData[i - 1].y < minGap) labelData[i].y = labelData[i - 1].y + minGap;
+    }
+    labelData.forEach(ld => {
+      const lx = M.left + plotW + 12;
+      parts.push(`<line x1="${M.left + plotW}" y1="${y(series[ld.t][series[ld.t].length-1])}" x2="${lx - 4}" y2="${ld.y}" stroke="var(--border-hover)" stroke-width="1"/>`);
+      parts.push(`<text class="end-label" x="${lx}" y="${ld.y + 3.5}" text-anchor="start" fill="${ld.t === "Gulf Coast" ? "var(--accent)" : "var(--text)"}">${ld.t}</text>`);
+    });
+
+    // hover layer: invisible column targets per month + crosshair
+    parts.push(`<line class="crosshair-line" id="crosshair" x1="0" y1="${M.top}" x2="0" y2="${M.top + plotH}"/>`);
+    const colW = plotW / (months.length - 1);
+    months.forEach((m, i) => {
+      const cx = x(i);
+      const hitX = cx - colW / 2;
+      parts.push(`<rect class="hover-target" x="${Math.max(M.left, hitX)}" y="${M.top}" width="${colW}" height="${plotH}" data-idx="${i}"/>`);
+    });
+
+    svg.innerHTML = parts.join("");
+
+    const tooltip = document.getElementById("lineTooltip");
+    const wrap = svg.parentElement;
+    const crosshair = document.getElementById("crosshair");
+
+    svg.querySelectorAll(".hover-target").forEach(rect => {
+      rect.addEventListener("pointerenter", showLine);
+      rect.addEventListener("pointermove", showLine);
+      rect.addEventListener("pointerleave", () => { tooltip.classList.remove("show"); crosshair.style.opacity = 0; });
+      rect.addEventListener("focus", showLine);
+    });
+
+    function showLine(e) {
+      const i = +e.target.getAttribute("data-idx");
+      const cx = x(i);
+      crosshair.setAttribute("x1", cx); crosshair.setAttribute("x2", cx);
+      crosshair.style.opacity = 1;
+      const rows = TERRITORY_ORDER.slice().sort((a, b) => series[b][i] - series[a][i]).map(t => `
+        <div class="tooltip-row">
+          <span class="tooltip-key"><span class="tooltip-swatch" style="background:${isHighlight(t) ? "var(--accent)" : "var(--series-muted-strong)"}"></span>${t}</span>
+          <span class="tooltip-val">${fmtPct(series[t][i])}</span>
+        </div>`).join("");
+      tooltip.innerHTML = `<div class="tooltip-title">${monthLabel(months[i])}</div>${rows}`;
+      tooltip.classList.add("show");
+      const svgRect = svg.getBoundingClientRect();
+      const wrapRect = wrap.getBoundingClientRect();
+      const scale = svgRect.width / W;
+      tooltip.style.left = (svgRect.left - wrapRect.left + cx * scale) + "px";
+      tooltip.style.top = (svgRect.top - wrapRect.top + y(0.75) * scale) + "px";
+    }
+
+    // legend
+    document.getElementById("lineLegend").innerHTML = TERRITORY_ORDER.map(t => `
+      <span class="legend-item">
+        <span class="legend-swatch" style="background:${isHighlight(t) ? "var(--accent)" : "var(--series-muted-strong)"}"></span>
+        ${t}${isHighlight(t) ? " (flagged)" : ""}
+      </span>`).join("");
+
+    // accessible table fallback
+    const tbl = document.getElementById("lineTable");
+    tbl.innerHTML = `<thead><tr><th>Month</th>${TERRITORY_ORDER.map(t => `<th class="num">${t}</th>`).join("")}</tr></thead>
+      <tbody>${months.map((m, i) => `<tr><td>${monthLabel(m)}</td>${TERRITORY_ORDER.map(t => `<td class="num">${fmtPct(series[t][i])}</td>`).join("")}</tr>`).join("")}</tbody>`;
+  }
+
+  // ---------------- Bar charts (reorder cost, turnaround) ----------------
+  function renderBars(containerId, data, valueFmt) {
+    const max = Math.max(...data.map(d => d.value));
+    const container = document.getElementById(containerId);
+    container.innerHTML = data.map(d => {
+      const pct = max > 0 ? (d.value / max) * 100 : 0;
+      const cls = isHighlight(d.territory) ? "highlight" : "muted";
+      return `
+        <div class="bar-row">
+          <div class="bar-label">${d.territory}</div>
+          <div class="bar-track">
+            <div class="bar-fill ${cls}" style="width:${pct}%" title="${d.territory}: ${valueFmt(d.value)}"></div>
+          </div>
+          <div class="bar-value">${valueFmt(d.value)}</div>
+        </div>`;
+    }).join("");
+  }
+
+  // ---------------- Demand variance table ----------------
+  function renderVarianceTable() {
+    const body = document.getElementById("varianceBody");
+    body.innerHTML = DATA.demandVariance.map((r, i) => `
+      <tr>
+        <td>${i === 0 ? `<span class="row-flag">${r.product}</span>` : r.product}</td>
+        <td><span class="cell-tag">${r.category}</span></td>
+        <td class="num">${r.avg}</td>
+        <td class="num">${r.stdev}</td>
+        <td class="num">${i === 0 ? `<strong style="color:var(--accent)">${r.cv}</strong>` : r.cv}</td>
+      </tr>`).join("");
+  }
+
+  // ---------------- Site drill-down ----------------
+  function renderSiteTable(filterTerritory) {
+    const body = document.getElementById("siteBody");
+    let rows = DATA.sites.slice();
+    if (filterTerritory && filterTerritory !== "all") rows = rows.filter(r => r.territory === filterTerritory);
+    body.innerHTML = rows.map(r => {
+      const under = r.parCompliance < 0.9;
+      return `
+      <tr>
+        <td>${r.site}</td>
+        <td>${r.territory}</td>
+        <td class="num ${under ? "row-flag" : ""}">${fmtPct(r.parCompliance)}</td>
+        <td class="num">${fmtPct(r.fulfillmentRate)}</td>
+        <td class="num">${fmtPct(r.cycleAccuracy)}</td>
+        <td class="num">${r.turnaroundDays.toFixed(1)}</td>
+        <td class="num">${fmtUsd(r.reorderCost)}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  function initFilter() {
+    const sel = document.getElementById("territoryFilter");
+    TERRITORY_ORDER.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t; opt.textContent = t;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener("change", () => renderSiteTable(sel.value));
+  }
+
+  renderKPI();
+  renderLineChart();
+  renderBars("reorderBars", DATA.reorderCostByTerritory, fmtUsd);
+  renderBars("turnaroundBars", DATA.turnaroundByTerritory, fmtDays);
+  renderVarianceTable();
+  initFilter();
+  renderSiteTable("all");
+
+  window.addEventListener("resize", renderLineChart);
+})();
+</script>
+
+</body>
+</html>
